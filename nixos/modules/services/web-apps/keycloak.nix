@@ -290,14 +290,14 @@ in
       };
 
       realmFiles = mkOption {
-        type = attrsOf str; 
+        type = attrsOf str;
         example = literalExpression ''
           some-realm = builtins.readFile ./some/realm.json;
           another-realm = builtins.readFile ./another/realm.json;
         '';
         default = {};
         description = lib.mdDoc ''
-          List of paths to files that the server is going to try to import
+          List of paths to realm files that the server is going to try to import
           during startup. If a realm already exists in the server, the import
           operation is skipped. Importing the master realm is not supported.
           All files are expected to be in `json` format.
@@ -644,7 +644,7 @@ in
             '';
             secretReplacements = lib.concatMapStrings mkSecretReplacement secretPaths;
             installRealmFile = name: value: ''
-              install -D ${pkgs.writeText "keycloak-realm-${name}" value} /run/keycloak/data/import/${name}.json            
+              install -D -m 0600 ${pkgs.writeText "keycloak-realm-${name}" value} /run/keycloak/data/import/${name}.json
             '';
           in
           {
