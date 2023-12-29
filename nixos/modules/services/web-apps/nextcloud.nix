@@ -28,6 +28,7 @@ let
   phpPackage = cfg.phpPackage.buildEnv {
     extensions = { enabled, all }:
       (with all; enabled
+        ++ [ bz2 intl sodium ] # recommended
         ++ optional cfg.enableImagemagick imagick
         # Optionally enabled depending on caching settings
         ++ optional cfg.caching.apcu apcu
@@ -188,7 +189,7 @@ in {
     package = mkOption {
       type = types.package;
       description = lib.mdDoc "Which package to use for the Nextcloud instance.";
-      relatedPackages = [ "nextcloud26" "nextcloud27" ];
+      relatedPackages = [ "nextcloud26" "nextcloud27" "nextcloud28" ];
     };
     phpPackage = mkOption {
       type = types.package;
@@ -1134,10 +1135,13 @@ in {
               fastcgi_read_timeout ${builtins.toString cfg.fastcgiTimeout}s;
             '';
           };
-          "~ \\.(?:css|js|mjs|svg|gif|png|jpg|jpeg|ico|wasm|tflite|map|html|ttf|bcmap|mp4|webm)$".extraConfig = ''
+          "~ \\.(?:css|js|mjs|svg|gif|png|jpg|jpeg|ico|wasm|tflite|map|html|ttf|bcmap|mp4|webm|ogg|flac)$".extraConfig = ''
             try_files $uri /index.php$request_uri;
             expires 6M;
             access_log off;
+            location ~ \.mjs$ {
+              default_type text/javascript;
+            }
             location ~ \.wasm$ {
               default_type application/wasm;
             }

@@ -61,7 +61,7 @@ with pkgs;
   };
 
   stdenvNoLibs =
-    if stdenv.hostPlatform != stdenv.buildPlatform && (stdenv.hostPlatform.isDarwin || stdenv.hostPlatform.isDarwin.useLLVM or false)
+    if stdenv.hostPlatform != stdenv.buildPlatform && (stdenv.hostPlatform.isDarwin || stdenv.hostPlatform.useLLVM or false)
     then
       # We cannot touch binutils or cc themselves, because that will cause
       # infinite recursion. So instead, we just choose a libc based on the
@@ -1762,6 +1762,8 @@ with pkgs;
   ejson2env = callPackage ../tools/admin/ejson2env { };
 
   davinci-resolve = callPackage ../applications/video/davinci-resolve { };
+
+  davinci-resolve-studio = callPackage ../applications/video/davinci-resolve { studioVariant = true; };
 
   dolbybcsoftwaredecode = callPackage ../applications/audio/dolbybcsoftwaredecode { };
 
@@ -11209,7 +11211,7 @@ with pkgs;
   grocy = callPackage ../servers/grocy { };
 
   inherit (callPackage ../servers/nextcloud {})
-    nextcloud25 nextcloud26 nextcloud27;
+    nextcloud25 nextcloud26 nextcloud27 nextcloud28;
 
   nextcloud25Packages = throw "Nextcloud25 is EOL!";
   nextcloud26Packages = callPackage ../servers/nextcloud/packages {
@@ -11217,6 +11219,9 @@ with pkgs;
   };
   nextcloud27Packages = callPackage ../servers/nextcloud/packages {
     apps = lib.importJSON ../servers/nextcloud/packages/27.json;
+  };
+  nextcloud28Packages = callPackage ../servers/nextcloud/packages {
+    apps = lib.importJSON ../servers/nextcloud/packages/28.json;
   };
 
   nextcloud-client = libsForQt5.callPackage ../applications/networking/nextcloud-client { };
@@ -18522,9 +18527,10 @@ with pkgs;
   electron_22 = electron_22-bin;
   electron_23 = electron_23-bin;
   electron_24 = electron_24-bin;
-  electron_25 = if lib.meta.availableOn stdenv.hostPlatform electron-source.electron_25 then electron-source.electron_25 else electron_25-bin;
+  electron_25 = electron_25-bin;
   electron_26 = if lib.meta.availableOn stdenv.hostPlatform electron-source.electron_26 then electron-source.electron_26 else electron_26-bin;
   electron_27 = if lib.meta.availableOn stdenv.hostPlatform electron-source.electron_27 then electron-source.electron_27 else electron_27-bin;
+  electron_28 = electron-source.electron_28;
   electron = electron_27;
 
   autobuild = callPackage ../development/tools/misc/autobuild { };
@@ -28199,6 +28205,8 @@ with pkgs;
   linux_6_1_hardened = linuxKernel.kernels.linux_6_1_hardened;
   linuxPackages_6_5_hardened = linuxKernel.packages.linux_6_5_hardened;
   linux_6_5_hardened = linuxKernel.kernels.linux_6_5_hardened;
+  linuxPackages_6_6_hardened = linuxKernel.packages.linux_6_6_hardened;
+  linux_6_6_hardened = linuxKernel.kernels.linux_6_6_hardened;
 
   # GNU Linux-libre kernels
   linuxPackages-libre = linuxKernel.packages.linux_libre;
@@ -35519,9 +35527,7 @@ with pkgs;
 
   skrooge = libsForQt5.callPackage ../applications/office/skrooge { };
 
-  smartgithg = callPackage ../applications/version-management/smartgithg {
-    jre = openjdk11;
-  };
+  smartgithg = callPackage ../applications/version-management/smartgithg { };
 
   smartdeblur = libsForQt5.callPackage ../applications/graphics/smartdeblur { };
 
@@ -41441,7 +41447,9 @@ with pkgs;
     inherit (darwin.apple_sdk.frameworks) CoreFoundation SystemConfiguration Security;
   };
 
-  wavm = callPackage ../development/interpreters/wavm { };
+  wavm = callPackage ../development/interpreters/wavm {
+    llvmPackages = llvmPackages_12;
+  };
 
   yabasic = callPackage ../development/interpreters/yabasic { };
 
