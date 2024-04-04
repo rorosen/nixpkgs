@@ -10646,10 +10646,6 @@ self: super: with self; {
 
   pyomo = callPackage ../development/python-modules/pyomo { };
 
-  pyp = callPackage ../development/python-modules/pyp {
-    inherit (pkgs) jq;
-  };
-
   pypng = callPackage ../development/python-modules/pypng { };
 
   phonemizer = callPackage ../development/python-modules/phonemizer { };
@@ -12098,6 +12094,8 @@ self: super: with self; {
   range-typed-integers = callPackage ../development/python-modules/range-typed-integers { };
 
   rangehttpserver = callPackage ../development/python-modules/rangehttpserver { };
+
+  rangeparser = callPackage ../development/python-modules/rangeparser { };
 
   rank-bm25 = callPackage ../development/python-modules/rank-bm25 { };
 

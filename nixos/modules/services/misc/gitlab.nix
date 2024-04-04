@@ -1410,10 +1410,8 @@ in {
 
     systemd.services.gitlab-db-config = {
       after = [ "gitlab-config.service" "gitlab-postgresql.service" "postgresql.service" ];
-      bindsTo = [
-        "gitlab-config.service"
-      ] ++ optional (cfg.databaseHost == "") "postgresql.service"
-        ++ optional databaseActuallyCreateLocally "gitlab-postgresql.service";
+      wants = optional (cfg.databaseHost == "") "postgresql.service" ++ optional databaseActuallyCreateLocally "gitlab-postgresql.service";
+      bindsTo = [ "gitlab-config.service" ];
       wantedBy = [ "gitlab.target" ];
       partOf = [ "gitlab.target" ];
       serviceConfig = {
@@ -1446,10 +1444,10 @@ in {
         "gitlab-db-config.service"
       ];
       bindsTo = [
-        "redis-gitlab.service"
         "gitlab-config.service"
         "gitlab-db-config.service"
-      ] ++ optional (cfg.databaseHost == "") "postgresql.service";
+      ];
+      wants = [ "redis-gitlab.service" ] ++ optional (cfg.databaseHost == "") "postgresql.service";
       wantedBy = [ "gitlab.target" ];
       partOf = [ "gitlab.target" ];
       environment = gitlabEnv // (optionalAttrs cfg.sidekiq.memoryKiller.enable {
@@ -1465,6 +1463,8 @@ in {
         nodejs
         gnupg
 
+        "${cfg.packages.gitlab}/share/gitlab/vendor/gems/sidekiq-${cfg.packages.gitlab.rubyEnv.gems.sidekiq.version}"
+
         # Needed for GitLab project imports
         gnutar
         gzip
@@ -1478,7 +1478,12 @@ in {
         TimeoutSec = "infinity";
         Restart = "always";
         WorkingDirectory = "${cfg.packages.gitlab}/share/gitlab";
-        ExecStart="${cfg.packages.gitlab.rubyEnv}/bin/sidekiq -C \"${cfg.packages.gitlab}/share/gitlab/config/sidekiq_queues.yml\" -e production";
+        ExecStart = utils.escapeSystemdExecArgs [
+          "${cfg.packages.gitlab}/share/gitlab/bin/sidekiq-cluster"
+          "-e" "production"
+          "-r" "."
+          "*" # all queue groups
+        ];
       };
     };
 
@@ -1576,7 +1581,7 @@ in {
         gnutar
         gzip
         openssh
-        gitlab-workhorse
+        cfg.packages.gitlab-workhorse
       ];
       serviceConfig = {
         Type = "simple";
@@ -1597,7 +1602,9 @@ in {
           rm "${cfg.statePath}/config/gitlab-workhorse.json"
         '';
         ExecStart =
-          "${cfg.packages.gitlab-workhorse}/bin/workhorse "
+          "${cfg.packages.gitlab-workhorse}/bin/${
+              optionalString (lib.versionAtLeast (lib.getVersion cfg.packages.gitlab-workhorse) "16.10") "gitlab-"
+            }workhorse "
           + "-listenUmask 0 "
           + "-listenNetwork unix "
           + "-listenAddr /run/gitlab/gitlab-workhorse.socket "
@@ -1636,10 +1643,10 @@ in {
         "gitlab-db-config.service"
       ];
       bindsTo = [
-        "redis-gitlab.service"
         "gitlab-config.service"
         "gitlab-db-config.service"
-      ] ++ optional (cfg.databaseHost == "") "postgresql.service";
+      ];
+      wants = [ "redis-gitlab.service" ] ++ optional (cfg.databaseHost == "") "postgresql.service";
       requiredBy = [ "gitlab.target" ];
       partOf = [ "gitlab.target" ];
       environment = gitlabEnv;

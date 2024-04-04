@@ -40,9 +40,9 @@
 , pkgsCross # wasm32 rlbox
 , python3
 , runCommand
-, rustc
 , rust-cbindgen
-, rustPlatform
+, rustPackages_1_73
+, rustPackages_1_76
 , unzip
 , which
 , wrapGAppsHook
@@ -150,6 +150,9 @@ assert pipewireSupport -> !waylandSupport || !webrtcSupport -> throw "${pname}: 
 let
   inherit (lib) enableFeature;
 
+  inherit (if lib.versionAtLeast version "125" then rustPackages_1_76 else rustPackages_1_73)
+    cargo rustc rustPlatform;
+
   # Target the LLVM version that rustc is built with for LTO.
   llvmPackages0 = rustc.llvmPackages;
   llvmPackagesBuildBuild0 = pkgsBuildBuild.rustc.llvmPackages;
@@ -245,6 +248,9 @@ buildStdenv.mkDerivation {
       hash = "sha256-cWOyvjIPUU1tavPRqg61xJ53XE4EJTdsFzadfVxyTyM=";
     })
   ]
+  ++ lib.optionals (lib.versionAtLeast version "122" && lib.versionOlder version "123") [
+    ./122.0-libvpx-mozbz1875201.patch
+  ]
   ++ extraPatches;
 
   postPatch = ''
@@ -291,6 +297,9 @@ buildStdenv.mkDerivation {
 
     # Runs autoconf through ./mach configure in configurePhase
     configureScript="$(realpath ./mach) configure"
+
+    # Set reproducible build date; https://bugzilla.mozilla.org/show_bug.cgi?id=885777#c21
+    export MOZ_BUILD_DATE=$(head -n1 sourcestamp.txt)
 
     # Set predictable directories for build and state
     export MOZ_OBJDIR=$(pwd)/mozobj

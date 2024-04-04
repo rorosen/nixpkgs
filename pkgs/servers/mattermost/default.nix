@@ -8,21 +8,28 @@
 
 buildGoModule rec {
   pname = "mattermost";
-  version = "8.1.7";
+  version = "8.1.11";
 
   src = fetchFromGitHub {
     owner = "mattermost";
     repo = "mattermost";
     rev = "v${version}";
-    hash = "sha256-ZpjdJ1Uck0kM+togUKpxRij8V0jQX+12Meks+L1Tc90=";
+    hash = "sha256-jk4wNfybrJ/oGETDoVPmiqLMd55baML/Ko49qinhbU8=";
   } + "/server";
+
+  # this can probably be removed again in versions newer than 8.1.10
+  overrideModAttrs = (_: {
+    preBuild = ''
+      go mod tidy
+    '';
+  });
 
   webapp = fetchurl {
     url = "https://releases.mattermost.com/${version}/mattermost-${version}-linux-amd64.tar.gz";
-    hash = "sha256-eORIoZLoxWdvuRlirJ7djBTgueIzlzIhRAoURy58zCA=";
+    hash = "sha256-Aa6Un0YWHYMe2Ds/p+vMS9B38GUPRNH0ZQlCJ91uYD4=";
   };
 
-  vendorHash = "sha256-RPnCAxksKppsjVtZYhwcoJuAmMJ85AstuoBFChKwAOk=";
+  vendorHash = "sha256-NWliIJ/eusAYKhPdApTqdYf0gCo38HVcL/7P/zqkg+I=";
 
   subPackages = [ "cmd/mattermost" ];
 
@@ -37,6 +44,7 @@ buildGoModule rec {
     "-X github.com/mattermost/mattermost/server/public/model.BuildHash=v${version}"
     "-X github.com/mattermost/mattermost/server/public/model.BuildHashEnterprise=none"
     "-X github.com/mattermost/mattermost/server/public/model.BuildEnterpriseReady=false"
+    "-X github.com/mattermost/mattermost/server/public/model.MockCWS=false"
   ];
 
   postInstall = ''
