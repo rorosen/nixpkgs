@@ -254,7 +254,17 @@ in
         description = ''
           Initial password set for the `admin`
           user. The password is not stored safely and should be changed
-          immediately in the admin panel.
+          immediately in the admin panel. Is ignored if [](#opt-services.keycloak.adminPasswordFile)
+          is set.
+        '';
+      };
+
+      adminPasswordFile = mkOption {
+        type = nullOr path;
+        example = "/run/keys/kc_admin_password";
+        default = null;
+        description = lib.mdDoc ''
+          The full path to a file that contains the admin's password.
         '';
       };
 
@@ -632,7 +642,8 @@ in
                 ++ optionals (cfg.sslCertificate != null && cfg.sslCertificateKey != null) [
                   "ssl_cert:${cfg.sslCertificate}"
                   "ssl_key:${cfg.sslCertificateKey}"
-                ];
+                ] ++ lib.optional (cfg.adminPasswordFile != null)
+                  "admin_password:${cfg.adminPasswordFile}";
               User = "keycloak";
               Group = "keycloak";
               DynamicUser = true;
@@ -665,8 +676,12 @@ in
               cp $CREDENTIALS_DIRECTORY/ssl_{cert,key} /run/keycloak/ssl/
             '' + ''
               export KEYCLOAK_ADMIN=admin
-              export KEYCLOAK_ADMIN_PASSWORD=${escapeShellArg cfg.initialAdminPassword}
-              kc.sh --verbose start --optimized
+              export KEYCLOAK_ADMIN_PASSWORD=${
+                if (cfg.adminPasswordFile == null)
+                then (escapeShellArg cfg.initialAdminPassword)
+                else "$(cat $CREDENTIALS_DIRECTORY/admin_password)"
+              }
+              kc.sh start --optimized
             '';
           };
 
