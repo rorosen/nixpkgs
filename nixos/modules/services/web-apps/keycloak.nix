@@ -263,7 +263,7 @@ in
         type = nullOr path;
         example = "/run/keys/kc_admin_password";
         default = null;
-        description = lib.mdDoc ''
+        description = ''
           The full path to a file that contains the admin's password.
         '';
       };
@@ -279,6 +279,21 @@ in
           different theme types: for example, `account`,
           `login` etc. After adding a theme to this option you
           can select it by its name in Keycloak administration console.
+        '';
+      };
+
+      realmFiles = mkOption {
+        type = attrsOf str;
+        example = literalExpression ''
+          some-realm = builtins.readFile ./some/realm.json;
+          another-realm = builtins.readFile ./another/realm.json;
+        '';
+        default = {};
+        description = ''
+          Set of realm files that the server is going to try to import
+          during startup. If a realm already exists in the server, the import
+          operation is skipped. Importing the master realm is not supported.
+          All files are expected to be in `json` format.
         '';
       };
 
@@ -622,6 +637,9 @@ in
               replace-secret ${hashString "sha256" file} $CREDENTIALS_DIRECTORY/${baseNameOf file} /run/keycloak/conf/keycloak.conf
             '';
             secretReplacements = lib.concatMapStrings mkSecretReplacement secretPaths;
+            installRealmFile = name: value: ''
+              install -D -m 0600 ${pkgs.writeText "keycloak-realm-${name}" value} /run/keycloak/data/import/${name}.json
+            '';
           in
           {
             after = databaseServices;
@@ -674,14 +692,16 @@ in
             '' + optionalString (cfg.sslCertificate != null && cfg.sslCertificateKey != null) ''
               mkdir -p /run/keycloak/ssl
               cp $CREDENTIALS_DIRECTORY/ssl_{cert,key} /run/keycloak/ssl/
-            '' + ''
+            '' + optionalString (cfg.realmFiles != {}) ''
+              ${concatStringsSep "\n" (mapAttrsToList installRealmFile cfg.realmFiles)}
+            '' +''
               export KEYCLOAK_ADMIN=admin
               export KEYCLOAK_ADMIN_PASSWORD=${
                 if (cfg.adminPasswordFile == null)
                 then (escapeShellArg cfg.initialAdminPassword)
                 else "$(cat $CREDENTIALS_DIRECTORY/admin_password)"
               }
-              kc.sh start --optimized
+              kc.sh start --optimized ${lib.optionalString (cfg.realmFiles != {}) "--import-realm"}
             '';
           };
 
